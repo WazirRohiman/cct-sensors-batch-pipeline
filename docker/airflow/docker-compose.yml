@@ -1,0 +1,88 @@
+x-airflow-common: &airflow-common
+  image: ${AIRFLOW_IMAGE:-apache/airflow:2.10.2-python3.11}
+  environment:
+    &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    AIRFLOW__WEBSERVER__INSTANCE_NAME: cct-env-pipeline
+    AIRFLOW_UID: "${AIRFLOW_UID:-50000}"
+    AIRFLOW_GID: "${AIRFLOW_GID:-0}"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ../../data:/opt/airflow/data
+    - ./requirements.txt:/opt/airflow/requirements.txt
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    - postgres
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command: -c "pip install -r /opt/airflow/requirements.txt && airflow db migrate && airflow users create --role Admin --username $${_AIRFLOW_WWW_USER_USERNAME} --password $${_AIRFLOW_WWW_USER_PASSWORD} --firstname Wazir --lastname Rohiman --email wazir@example.com"
+    environment:
+      <<: *airflow-env
+      _AIRFLOW_WWW_USER_USERNAME: "${AIRFLOW_ADMIN_USERNAME:-admin}"
+      _AIRFLOW_WWW_USER_PASSWORD: "${AIRFLOW_ADMIN_PASSWORD:-admin}"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+
+  duckdb-init:
+    build:
+      context: ../duckdb
+      dockerfile: Dockerfile
+    environment:
+      - DUCKDB_PATH=/data/duckdb/cct_env.duckdb
+      - DATA_ROOT=/data
+    volumes:
+      - ../../data:/data
+      - ../../src:/app/src
+    profiles: ["manual"]
+
+  viewer:
+    image: jupyter/minimal-notebook:python-3.11
+    command: bash -c "pip install duckdb>=1.2.1 pandas pyarrow && start-notebook.sh --NotebookApp.token=''"
+    ports:
+      - "8888:8888"
+    environment:
+      - DUCKDB_PATH=/home/jovyan/work/data/duckdb/cct_env.duckdb
+    volumes:
+      - ../../data:/home/jovyan/work/data
+      - ../../notebooks:/home/jovyan/work/notebooks
+    init: true
+
+volumes:
+  airflow-db:
+
