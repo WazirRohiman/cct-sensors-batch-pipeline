@@ -15,7 +15,27 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def _download_file(url: str, dest_path: str) -> None:
-    """Download file with retry logic."""
+    """
+    Download a file from a URL to a local destination, with retry behavior.
+    
+    This performs an HTTP GET (streamed) using a browser-like User-Agent, ensures the destination
+    directory exists, writes the response body to dest_path in 8 KB chunks, and prints a brief
+    warning if the response Content-Type does not match expected binary/data types.
+    
+    Parameters:
+        url (str): Direct URL to download.
+        dest_path (str): Filesystem path where the downloaded file will be written. Parent
+            directories will be created if necessary.
+    
+    Notes:
+        - The function calls response.raise_for_status(), so HTTP errors surface as requests exceptions.
+        - Writes are performed in binary mode; partial files may be present if an error occurs.
+        - This function is designed to be wrapped with retry logic (e.g., tenacity) at the caller/decorator level.
+    
+    Raises:
+        requests.HTTPError: If the HTTP response status indicates an error.
+        OSError: If writing to the filesystem fails.
+    """
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
     response = requests.get(url, headers=headers, stream=True, timeout=30)
@@ -39,7 +59,11 @@ def _download_file(url: str, dest_path: str) -> None:
 
 
 def _extract_download_url_from_page(item_page_url: str) -> Optional[str]:
-    """Extract direct download URL from ArcGIS item page."""
+    """
+    Return a direct ArcGIS item data download URL derived from an ArcGIS item page URL, or None if it cannot be determined.
+    
+    Attempts to GET the provided item page URL and extract an item ID from the query string (regex: `id=([a-f0-9]+)`). If an ID is found, constructs and returns a direct data URL using the fixed base `https://cctegis.maps.arcgis.com/sharing/rest/content/items/{item_id}/data`. Returns None if the ID cannot be extracted, an HTTP/request error occurs, or any other exception is raised.
+    """
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
@@ -67,14 +91,17 @@ def _extract_download_url_from_page(item_page_url: str) -> Optional[str]:
 
 
 def fetch_item(item_url_or_page: str, dest_path: str) -> Optional[str]:
-    """Download an ArcGIS item (direct data URL or item page) to dest_path.
-
-    Args:
-        item_url_or_page: Either direct data URL or ArcGIS item page URL
-        dest_path: Path where file should be saved
-
+    """
+    Download an ArcGIS item (either a direct data URL or an ArcGIS item page URL) to the given destination path.
+    
+    If item_url_or_page is an ArcGIS item page (contains "/home/item.html"), the function will attempt to extract a direct data download URL from the page before downloading. On success returns the destination path; on any failure (including failed extraction, download error, or zero-length file) returns None and ensures any partial file at dest_path is removed.
+    
+    Parameters:
+        item_url_or_page (str): Direct data URL or ArcGIS item page URL.
+        dest_path (str): Filesystem path where the file will be saved.
+    
     Returns:
-        The path to the saved file or None on failure (to be quarantined).
+        Optional[str]: dest_path on success, or None on failure.
     """
     try:
         download_url = item_url_or_page
