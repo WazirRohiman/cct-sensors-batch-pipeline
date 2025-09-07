@@ -3,4 +3,5 @@ apache-airflow-providers-ftp>=3.7
 apache-airflow-providers-sqlite>=3.7
 requests>=2.32
 tenacity>=8.3
+PyYAML>=6.0
 
