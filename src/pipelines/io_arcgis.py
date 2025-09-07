@@ -30,12 +30,14 @@ def _download_file(url: str, dest_path: str) -> None:
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
     # Download with progress
+    total_bytes = 0
     with open(dest_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
                 f.write(chunk)
+                total_bytes += len(chunk)
 
-    print(f"Downloaded: {dest_path} ({len(response.content)} bytes)")
+    print(f"Downloaded: {dest_path} ({total_bytes} bytes)")
 
 
 def _extract_download_url_from_page(item_page_url: str) -> Optional[str]:
