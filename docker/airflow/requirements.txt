@@ -1,6 +1,7 @@
-apache-airflow-providers-http>=4.11
-apache-airflow-providers-ftp>=3.7
-apache-airflow-providers-sqlite>=3.7
+apache-airflow==2.10.2
+apache-airflow-providers-http==4.11.0
+apache-airflow-providers-ftp==3.7.0
+apache-airflow-providers-sqlite==3.7.0
 requests>=2.32
 tenacity>=8.3
 PyYAML>=6.0
