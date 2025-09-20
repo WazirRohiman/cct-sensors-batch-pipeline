@@ -1,5 +1,7 @@
 x-airflow-common: &airflow-common
-  image: ${AIRFLOW_IMAGE:-apache/airflow:2.10.2-python3.11}
+  build:
+    context: .
+  image: ${AIRFLOW_IMAGE:-cct-airflow:latest}
   environment:
     &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -7,13 +9,14 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
     AIRFLOW__WEBSERVER__INSTANCE_NAME: cct-env-pipeline
+    AIRFLOW__WEBSERVER__SECRET_KEY: "${AIRFLOW__WEBSERVER__SECRET_KEY}"
     AIRFLOW_UID: "${AIRFLOW_UID:-50000}"
     AIRFLOW_GID: "${AIRFLOW_GID:-0}"
   volumes:
     - ./dags:/opt/airflow/dags
     - ../../data:/opt/airflow/data
     - ../../src:/opt/airflow/src
-    - ./requirements.txt:/opt/airflow/requirements.txt
+    # requirements are baked into the custom image
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     - postgres
@@ -36,16 +39,14 @@ services:
     <<: *airflow-common
     entrypoint: /bin/bash
     command: -c "
-      echo 'Setting up data directories...' &&
+      echo 'Setting up data directories as root...' &&
       mkdir -p /opt/airflow/data/{raw,quarantine,staged,duckdb,logs} &&
       chown -R airflow:root /opt/airflow/data &&
       chmod -R 775 /opt/airflow/data &&
-      echo 'Installing Python requirements...' &&
-      pip install -r /opt/airflow/requirements.txt &&
-      echo 'Migrating database...' &&
-      airflow db migrate &&
+      echo 'Switching to airflow user for Airflow commands...' &&
+      sudo -E -u airflow airflow db migrate &&
       echo 'Creating admin user...' &&
-      airflow users create --role Admin --username $${_AIRFLOW_WWW_USER_USERNAME} --password $${_AIRFLOW_WWW_USER_PASSWORD} --firstname Wazir --lastname Rohiman --email wazir@example.com
+      sudo -E -u airflow airflow users create --role Admin --username $${_AIRFLOW_WWW_USER_USERNAME} --password $${_AIRFLOW_WWW_USER_PASSWORD} --firstname Wazir --lastname Rohiman --email wazir@example.com
       "
     environment:
       <<: *airflow-env
@@ -72,17 +73,8 @@ services:
     <<: *airflow-common
     command: triggerer
 
-  duckdb-init:
-    build:
-      context: ../duckdb
-      dockerfile: Dockerfile
-    environment:
-      - DUCKDB_PATH=/data/duckdb/cct_env.duckdb
-      - DATA_ROOT=/data
-    volumes:
-      - ../../data:/data
-      - ../../src:/app/src
-    profiles: ["manual"]
+# DuckDB init removed - file-based DB doesn't need server initialization
+# Tables will be created automatically when first accessed
 
   viewer:
     image: jupyter/minimal-notebook:python-3.11
@@ -98,4 +90,3 @@ services:
 
 volumes:
   airflow-db:
-
