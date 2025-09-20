@@ -1,6 +1,8 @@
 FROM python:3.11-slim
 
-RUN pip install --no-cache-dir duckdb>=1.2.1
+RUN pip install --no-cache-dir \
+    duckdb>=1.2.1 \
+    PyYAML>=6.0
 
 WORKDIR /app
 

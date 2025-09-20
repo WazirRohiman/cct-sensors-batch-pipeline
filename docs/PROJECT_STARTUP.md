@@ -83,7 +83,7 @@ You should see containers for: `postgres`, `airflow-webserver`, `airflow-schedul
 3. You should see the Airflow dashboard with 4 DAGs:
    - `fetch_air_quality`
    - `fetch_wind`
-   - `stage_and_normalize`
+   - `stage_and_normalise`
    - `load_dq_publish`
 
 ### Test 2: Jupyter + DuckDB Access

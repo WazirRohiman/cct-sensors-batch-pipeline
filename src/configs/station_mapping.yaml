@@ -1,0 +1,79 @@
+# Station mapping with surrogate keys for City of Cape Town environmental monitoring
+# This provides consistent station identification across all data sources
+
+wind_stations:
+  # Normalised station names (handle variations like "Somerset-West" vs "Somerset West")
+  station_mappings:
+    - station_pk: 1
+      station_code: "ATLAN001"
+      station_name: "Atlantis AQM Site"
+      normalised_names: ["Atlantis AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Atlantis"
+
+    - station_pk: 2
+      station_code: "BELLV001"
+      station_name: "Bellville South AQM Site"
+      normalised_names: ["Bellville South AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Bellville South"
+
+    - station_pk: 3
+      station_code: "BOTHA001"
+      station_name: "Bothasig AQM Site"
+      normalised_names: ["Bothasig AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Bothasig"
+
+    - station_pk: 4
+      station_code: "GOODW001"
+      station_name: "Goodwood AQM Station"
+      normalised_names: ["Goodwood AQM Station"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring station in Goodwood"
+
+    - station_pk: 5
+      station_code: "KHAYE001"
+      station_name: "Khayelitsha AQM Site"
+      normalised_names: ["Khayelitsha AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Khayelitsha"
+
+    - station_pk: 6
+      station_code: "SOMER001"
+      station_name: "Somerset West AQM Site"
+      normalised_names: ["Somerset West AQM Site", "Somerset-West AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Somerset West"
+
+    - station_pk: 7
+      station_code: "TABLE001"
+      station_name: "Tableview AQM Site"
+      normalised_names: ["Tableview AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Tableview"
+
+# Metric definitions for wind data
+wind_metrics:
+  - metric_code: "wind_direction"
+    metric_name: "Wind Direction"
+    unit: "degrees"
+    description: "Wind direction in degrees (0-360)"
+    valid_range: [0, 360]
+
+  - metric_code: "wind_speed"
+    metric_name: "Wind Speed"
+    unit: "m/s"
+    description: "Wind speed in meters per second"
+    valid_range: [0, 100]  # Reasonable upper limit for wind speed
+
+# Data quality flags
+quality_flags:
+  - flag_code: "VALID"
+    description: "Valid measurement"
+  - flag_code: "NODATA"
+    description: "No data available"
+  - flag_code: "INVLD"
+    description: "Invalid measurement"
+  - flag_code: "SUSPECT"
+    description: "Suspect measurement (outside normal range)"
