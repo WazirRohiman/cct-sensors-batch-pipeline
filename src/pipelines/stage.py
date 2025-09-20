@@ -34,15 +34,33 @@ class StationMapping:
     description: str
 
 
-def load_station_mappings() -> Dict[str, StationMapping]:
+def load_station_mappings(
+    config_path: str = "/opt/airflow/src/configs/station_mapping.yaml",
+) -> Dict[str, StationMapping]:
     """Load station mappings from YAML configuration."""
-    config_path = "/opt/airflow/src/configs/station_mapping.yaml"
 
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Station mapping config not found: {config_path}")
 
-    mappings = {}
-    for station_config in config["wind_stations"]["station_mappings"]:
+    try:
+        with open(config_path, "r", encoding="utf-8") as handle:
+            config = yaml.safe_load(handle)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML in config file: {exc}") from exc
+
+    if not config:
+        raise ValueError("Station mapping configuration is empty")
+
+    wind_section = config.get("wind_stations") if isinstance(config, dict) else None
+    if not isinstance(wind_section, dict):
+        raise ValueError("Missing required 'wind_stations' section in config")
+
+    station_configs = wind_section.get("station_mappings")
+    if not isinstance(station_configs, list) or not station_configs:
+        raise ValueError("Missing required 'wind_stations.station_mappings' in config")
+
+    mappings: Dict[str, StationMapping] = {}
+    for station_config in station_configs:
         station = StationMapping(**station_config)
 
         # Map all normalised names to this station
