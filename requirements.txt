@@ -7,7 +7,7 @@ pydantic>=2.7
 pydantic-settings>=2.3
 python-dotenv>=1.0
 openpyxl>=3.1
-xlrd==1.2.0
+xlrd>=2.0.1
 pandera>=0.20
 black>=24.3
 ruff>=0.5
