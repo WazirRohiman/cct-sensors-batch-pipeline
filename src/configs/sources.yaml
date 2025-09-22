@@ -8,7 +8,7 @@ wind:
 
 air_quality:
   years:
-    "2022": { type: "xlsx", url: "https://www.arcgis.com/sharing/rest/content/items/5555f5a529d644e994f6986f9d03af45/data" }
+    "2022": { type: "zip", item_page: "https://www.arcgis.com/home/item.html?id=5555f5a529d644e994f6986f9d03af45" }
     "2021": { type: "zip", item_page: "https://cctegis.maps.arcgis.com/home/item.html?id=97b0fe851c6f4d86b2492eb09fe42935" }
     "2020": { type: "zip", item_page: "https://cctegis.maps.arcgis.com/home/item.html?id=2fb7a43763704482a244aab9dd6f9ae6" }
     "2019": { type: "zip", item_page: "https://cctegis.maps.arcgis.com/home/item.html?id=c5a3514b193844c5b58347a338ecc811" }

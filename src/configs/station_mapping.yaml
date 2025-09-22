@@ -53,6 +53,34 @@ wind_stations:
       location_type: "AQM"
       description: "Air Quality Monitoring site in Tableview"
 
+    - station_pk: 8
+      station_code: "FORES001"
+      station_name: "Foreshore AQM Site"
+      normalised_names: ["Foreshore AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Foreshore"
+
+    - station_pk: 9
+      station_code: "MOLTE001"
+      station_name: "Molteno AQM Site"
+      normalised_names: ["Molteno AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Molteno"
+
+    - station_pk: 10
+      station_code: "PLATT001"
+      station_name: "Plattekloof AQM Site"
+      normalised_names: ["Plattekloof AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Plattekloof"
+
+    - station_pk: 11
+      station_code: "WALLA001"
+      station_name: "Wallacedene AQM Site"
+      normalised_names: ["Wallacedene AQM Site"]
+      location_type: "AQM"
+      description: "Air Quality Monitoring site in Wallacedene"
+
 # Metric definitions for wind data
 wind_metrics:
   - metric_code: "wind_direction"
@@ -67,6 +95,38 @@ wind_metrics:
     description: "Wind speed in meters per second"
     valid_range: [0, 100]  # Reasonable upper limit for wind speed
 
+# Air quality metrics definitions
+air_quality_metrics:
+  - metric_code: "no2"
+    metric_name: "Nitrogen Dioxide"
+    unit: "ug/m3(S)"
+    description: "Nitrogen dioxide concentration"
+    valid_range: [0, 500]
+
+  - metric_code: "o3"
+    metric_name: "Ozone"
+    unit: "ug/m3(S)"
+    description: "Ground-level ozone concentration"
+    valid_range: [0, 400]
+
+  - metric_code: "pm10"
+    metric_name: "Particulate Matter 10μm"
+    unit: "ug/m3(S)"
+    description: "Particulate matter with diameter ≤10 micrometers"
+    valid_range: [0, 1000]
+
+  - metric_code: "pm25"
+    metric_name: "Particulate Matter 2.5μm"
+    unit: "ug/m3(S)"
+    description: "Fine particulate matter with diameter ≤2.5 micrometers"
+    valid_range: [0, 500]
+
+  - metric_code: "so2"
+    metric_name: "Sulfur Dioxide"
+    unit: "ug/m3(S)"
+    description: "Sulfur dioxide concentration"
+    valid_range: [0, 350]
+
 # Data quality flags
 quality_flags:
   - flag_code: "VALID"
@@ -77,3 +137,14 @@ quality_flags:
     description: "Invalid measurement"
   - flag_code: "SUSPECT"
     description: "Suspect measurement (outside normal range)"
+  # Air quality specific flags
+  - flag_code: "DOWN"
+    description: "Equipment down"
+  - flag_code: "SAMP"
+    description: "Below sampling limit"
+  - flag_code: "RS232"
+    description: "Communication error"
+  - flag_code: "ZERO"
+    description: "Zero reading"
+  - flag_code: "CALIB"
+    description: "Calibration in progress"
