@@ -421,11 +421,11 @@ def process_air_quality_excel(file_path: str, pollutant: str, year: str) -> Opti
             if i >= len(data_df.columns):
                 break
 
-            # Normalize station name
-            normalized_station = normalise_station_name(station)
+            # Normalise station name
+            normalised_station = normalise_station_name(station)
 
-            if normalized_station in station_mappings:
-                station_obj = station_mappings[normalized_station]
+            if normalised_station in station_mappings:
+                station_obj = station_mappings[normalised_station]
                 station_pk = station_obj.station_pk
 
                 # Create column name: station_{pk}_{pollutant}
@@ -638,7 +638,7 @@ def extract_pollutant_from_filename(filename: str) -> Optional[str]:
     if match:
         pollutant_raw = match.group(1)
 
-        # Normalize pollutant name
+        # Normalise pollutant name
         pollutant = pollutant_raw.lower()
 
         # Handle special cases for PM measurements
