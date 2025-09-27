@@ -7,8 +7,9 @@ help:
 	@echo "Permissions: Run 'make fix-permissions' if Jupyter can't access DuckDB files"
 
 setup:
-	uv venv .venv && . .venv/bin/activate && uv pip install -r requirements.txt
-	pre-commit install
+	python3 -m venv .venv
+	. .venv/bin/activate && pip install -r requirements.txt
+	. .venv/bin/activate && pre-commit install
 	$(MAKE) data-dirs
 
 lint:
