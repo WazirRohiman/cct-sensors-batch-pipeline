@@ -1,7 +1,7 @@
-.PHONY: help setup lint test data-dirs airflow-up airflow-down airflow-reset fix-permissions
+.PHONY: help setup lint test data-dirs setup-env airflow-up airflow-down airflow-reset fix-permissions
 
 help:
-	@echo "Targets: setup | lint | test | data-dirs | airflow-up | airflow-down | airflow-reset | fix-permissions"
+	@echo "Targets: setup | lint | test | data-dirs | setup-env | airflow-up | airflow-down | airflow-reset | fix-permissions"
 	@echo "Services: Airflow (8080) | Jupyter (8888)"
 	@echo "DuckDB: Access via Jupyter notebooks at http://localhost:8888"
 	@echo "Permissions: Run 'make fix-permissions' if Jupyter can't access DuckDB files"
@@ -11,6 +11,7 @@ setup:
 	. .venv/bin/activate && pip install -r requirements.txt
 	. .venv/bin/activate && pre-commit install
 	$(MAKE) data-dirs
+	$(MAKE) setup-env
 
 lint:
 	ruff check .
@@ -22,8 +23,21 @@ test:
 data-dirs:
 	mkdir -p data/raw data/quarantine data/staged data/normalised data/duckdb data/logs notebooks progress_reports
 
+setup-env:
+	@echo "🔧 Setting up Airflow environment..."
+	@if [ ! -f docker/airflow/.env ]; then \
+		echo "📄 Creating .env from template..."; \
+		cp docker/airflow/.env.example docker/airflow/.env; \
+		echo "🔑 Generating Airflow secret key..."; \
+		SECRET_KEY=$$(openssl rand -hex 32); \
+		sed -i.bak "s/<insert-your-secret-key-here>/$$SECRET_KEY/" docker/airflow/.env && rm docker/airflow/.env.bak; \
+		echo "✅ Environment configured with secret key"; \
+	else \
+		echo "✅ .env file already exists"; \
+	fi
+
 airflow-up:
-	cd docker/airflow && cp -n .env.example .env || true && \
+	cd docker/airflow && \
 		docker compose up -d postgres && \
 		docker compose up -d airflow-init && \
 		docker compose up -d airflow-webserver airflow-scheduler airflow-triggerer viewer

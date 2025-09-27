@@ -23,11 +23,8 @@ A batch data processing pipeline for City of Cape Town environmental sensor data
 git clone <repository-url>
 cd cct-sensors-batch-pipeline
 
-# Install dependencies and setup environment
+# Install dependencies and setup environment (includes .env generation)
 make setup
-
-# Generate Airflow secret key and add to .env
-echo "AIRFLOW__WEBSERVER__SECRET_KEY=$(openssl rand -hex 32)" >> docker/airflow/.env
 
 # Start services
 make airflow-up
