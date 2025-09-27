@@ -2,13 +2,28 @@
 
 A batch data processing pipeline for City of Cape Town environmental sensor data. Transforms raw ArcGIS data into an analytics-ready DuckDB database with 2.9M+ measurements.
 
+## Prerequisites
+
+- Docker & Docker Compose
+- Make utility
+- OpenSSL (for generating secrets)
+- 4GB+ RAM
+- 5GB+ disk space
+
 ## Quick Start
 
 ### 1. Clone and Setup
 ```bash
 git clone <repository-url>
 cd cct-sensors-batch-pipeline
+
+# Install dependencies and setup environment
 make setup
+
+# Generate Airflow secret key and add to .env
+echo "AIRFLOW__WEBSERVER__SECRET_KEY=$(openssl rand -hex 32)" >> docker/airflow/.env
+
+# Start services
 make airflow-up
 ```
 
@@ -20,6 +35,7 @@ Login: `admin` / `admin`
 Run this command to unpause all DAGs:
 ```bash
 docker compose --project-directory docker/airflow -f docker/airflow/docker-compose.yml exec -T airflow-webserver airflow dags unpause master_environmental_pipeline
+```
 
 ### 4. Run Pipeline
 In Airflow UI:
@@ -132,7 +148,7 @@ docker exec -it cct-sensors-batch-pipeline-airflow-webserver-1 airflow dags list
 #### Jupyter Access Issues
 ```bash
 # Fix DuckDB permissions
-./scripts/fix_duckdb_permissions.sh
+make fix-permissions
 ```
 
 #### Pipeline Failures
@@ -205,21 +221,16 @@ GROUP BY s.station_name;
 
 ## Development
 
-### Requirements
-- Docker & Docker Compose
-- 4GB+ RAM
-- 5GB+ disk space
-
 ### Environment Setup
 ```bash
-# Development mode
-make setup-dev
+# Setup development environment
+make setup
 
-# Run tests
-make test
+# Run linting
+make lint
 
-# Code formatting
-make format
+# Create data directories
+make data-dirs
 ```
 
 For detailed documentation, see the `docs/` directory.
