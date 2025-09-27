@@ -5,7 +5,15 @@ A batch data processing pipeline for City of Cape Town environmental sensor data
 ## Prerequisites
 
 - Docker & Docker Compose
-- Make utility
+- UV and Make utility
+  To install uv and make
+  ```
+  pip install 
+  ```
+  ```
+  sudo apt-get update
+  sudo apt-get install make
+  ```
 - OpenSSL (for generating secrets)
 - 4GB+ RAM
 - 5GB+ disk space
