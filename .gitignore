@@ -201,6 +201,7 @@ cython_debug/
 # Project-specific ignores
 .env
 docker/airflow/.env
+docker/airflow/logs/*
 data/*
 !data/.gitkeep
 !data/raw/.gitkeep
@@ -225,3 +226,4 @@ __marimo__/
 
 # .requirements
 .requirements
+docker/airflow/logs/scheduler/latest

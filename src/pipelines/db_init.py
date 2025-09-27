@@ -120,7 +120,7 @@ def populate_station_data(con: duckdb.DuckDBPyConnection) -> None:
     for station in stations:
         con.execute(
             """
-            INSERT OR REPLACE INTO dim_station (
+            INSERT INTO dim_station (
                 station_pk, station_code, station_name, location_type, description
             ) VALUES (?, ?, ?, ?, ?)
         """,
