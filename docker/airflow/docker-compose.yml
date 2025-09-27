@@ -19,8 +19,7 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:100"
-  depends_on:
-    &airflow-common-depends-on
+  depends_on: &airflow-common-depends-on
     postgres:
       condition: service_healthy
 

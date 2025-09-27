@@ -19,8 +19,7 @@ Login: `admin` / `admin`
 ### 3. Enable DAGs
 Run this command to unpause all DAGs:
 ```bash
-docker exec cct-sensors-batch-pipeline-airflow-webserver-1 airflow dags unpause master_environmental_pipeline
-```
+docker compose --project-directory docker/airflow -f docker/airflow/docker-compose.yml exec -T airflow-webserver airflow dags unpause master_environmental_pipeline
 
 ### 4. Run Pipeline
 In Airflow UI:

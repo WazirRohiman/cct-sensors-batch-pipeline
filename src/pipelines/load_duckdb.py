@@ -159,7 +159,7 @@ def load_normalised_to_duckdb(parquet_path: str, duckdb_path: str) -> bool:
             """
             )
 
-            deleted_count = delete_result.fetchone()[0] if delete_result else 0
+            deleted_count = delete_result.rowcount or 0
             print(f"🗑️  Deleted {deleted_count:,} existing measurements")
 
             # Step 2: Bulk insert directly from parquet
@@ -284,7 +284,7 @@ def load_all_normalised_ultra_fast(
             """
             )
 
-            deleted_count = delete_result.fetchone()[0] if delete_result else 0
+            deleted_count = delete_result.rowcount or 0
             print(f"🗑️  Deleted {deleted_count:,} existing measurements")
 
             # Bulk insert ALL files at once
@@ -592,12 +592,11 @@ if __name__ == "__main__":
     import sys
 
     duckdb_path = os.environ.get("DUCKDB_PATH", "/opt/airflow/data/duckdb/cct_env.duckdb")
-    normalised_dir = os.environ.get("NORMALIsED_DIR", "/opt/airflow/data/normalised")
+    normalised_dir = os.environ.get("NORMALISED_DIR", "/opt/airflow/data/normalised")
 
     print("🚀 Starting DuckDB loading pipeline")
     print(f"   DuckDB: {duckdb_path}")
     print(f"   Data: {normalised_dir}")
-
     try:
         # Load all data
         stats = load_all_normalised(normalised_dir, duckdb_path)

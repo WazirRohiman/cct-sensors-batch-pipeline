@@ -35,7 +35,7 @@ airflow-reset:
 
 fix-permissions:
 	@echo "🔧 Fixing DuckDB permissions for Jupyter access..."
-	docker exec -u root airflow-viewer-1 chown -R 1000:100 /home/jovyan/work/data/duckdb/ 2>/dev/null || \
+	docker compose --project-directory docker/airflow -f docker/airflow/docker-compose.yml exec -T --user root viewer chown -R 1000:100 /home/jovyan/work/data/duckdb/ 2>/dev/null || \
 		(echo "⚠️  Viewer container not running, fixing host permissions..." && \
 		sudo chown -R 1000:1000 data/duckdb/ 2>/dev/null || \
 		./scripts/fix_duckdb_permissions.sh)

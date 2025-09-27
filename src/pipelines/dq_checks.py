@@ -64,9 +64,13 @@ def dq_summary(duckdb_path: str) -> Dict[str, int]:
             SELECT
                 COUNT(*) FILTER (WHERE value IS NULL) as null_values,
                 COUNT(*) FILTER (WHERE value IS NOT NULL) as valid_values,
-                ROUND(
-                    COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*), 2
-                ) as null_percentage
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*),
+                        2
+                    )
+                END as null_percentage
             FROM fact_measurement
         """
         ).fetchone()
@@ -189,7 +193,13 @@ def check_null_rates(duckdb_path: str) -> Dict[str, any]:
             SELECT
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE value IS NULL) as nulls,
-                ROUND(COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*), 2) as null_pct
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*),
+                        2
+                    )
+                END as null_pct
             FROM fact_measurement
         """
         ).fetchone()
@@ -205,7 +215,13 @@ def check_null_rates(duckdb_path: str) -> Dict[str, any]:
                 metric,
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE value IS NULL) as nulls,
-                ROUND(COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*), 2) as null_pct
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        COUNT(*) FILTER (WHERE value IS NULL) * 100.0 / COUNT(*),
+                        2
+                    )
+                END as null_pct
             FROM fact_measurement
             GROUP BY metric
             ORDER BY null_pct DESC
@@ -225,7 +241,13 @@ def check_null_rates(duckdb_path: str) -> Dict[str, any]:
                 s.station_name,
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE f.value IS NULL) as nulls,
-                ROUND(COUNT(*) FILTER (WHERE f.value IS NULL) * 100.0 / COUNT(*), 2) as null_pct
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        COUNT(*) FILTER (WHERE f.value IS NULL) * 100.0 / COUNT(*),
+                        2
+                    )
+                END as null_pct
             FROM fact_measurement f
             JOIN dim_station s ON f.station_fk = s.station_pk
             GROUP BY s.station_name
@@ -494,12 +516,18 @@ def check_quality_flags(duckdb_path: str) -> Dict[str, any]:
                 metric,
                 COUNT(*) FILTER (WHERE quality_flag = 'NODATA') as nodata,
                 COUNT(*) as total,
-                ROUND(
-                    COUNT(*) FILTER (WHERE quality_flag = 'NODATA') * 100.0 / COUNT(*), 2
-                ) as nodata_pct
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        COUNT(*) FILTER (WHERE quality_flag = 'NODATA') * 100.0 / COUNT(*), 2
+                    )
+                END as nodata_pct
             FROM fact_measurement
             GROUP BY metric
-            HAVING COUNT(*) FILTER (WHERE quality_flag = 'NODATA') * 100.0 / COUNT(*) > 50
+            HAVING CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE COUNT(*) FILTER (WHERE quality_flag = 'NODATA') * 100.0 / COUNT(*)
+                END > 50
             ORDER BY nodata_pct DESC
         """
         ).fetchdf()

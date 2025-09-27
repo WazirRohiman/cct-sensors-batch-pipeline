@@ -109,12 +109,20 @@ def validate_duckdb_state(duckdb_path: str) -> Dict[str, Any]:
         null_values = data_quality[2]
         valid_flags = data_quality[3]
         nodata_flags = data_quality[4]
-
         print("\n📈 Data Quality Summary:")
         print(f"   - Total measurements: {total_measurements:,}")
-        print(f"   - Valid values: {valid_values:,} ({valid_values/total_measurements*100:.1f}%)")
-        print(f"   - NULL values: {null_values:,} ({null_values/total_measurements*100:.1f}%)")
+        if total_measurements:
+            valid_pct = valid_values / total_measurements * 100
+            null_pct = null_values / total_measurements * 100
+            valid_pct_display = f"{valid_pct:.1f}%"
+            null_pct_display = f"{null_pct:.1f}%"
+        else:
+            valid_pct_display = "n/a"
+            null_pct_display = "n/a"
+        print(f"   - Valid values: {valid_values:,} ({valid_pct_display})")
+        print(f"   - NULL values: {null_values:,} ({null_pct_display})")
         print(f"   - VALID flags: {valid_flags:,}")
+        print(f"   - NODATA flags: {nodata_flags:,}")
         print(f"   - NODATA flags: {nodata_flags:,}")
 
         print("\n✅ DuckDB validation complete")

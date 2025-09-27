@@ -252,4 +252,4 @@ log_summary = PythonOperator(
 
 # Task dependencies
 check_normalised_data >> init_duckdb_schema >> load_normalised_data
-run_dq_checks >> validate_duckdb_state >> log_summary
+load_normalised_data >> run_dq_checks >> validate_duckdb_state >> log_summary
