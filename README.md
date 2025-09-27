@@ -27,6 +27,7 @@ cd cct-sensors-batch-pipeline
 make setup
 
 # Start services
+# Please Note that this might take between 10 to 15 mins the first time for the image build process
 make airflow-up
 ```
 
