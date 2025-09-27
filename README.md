@@ -4,6 +4,7 @@ A batch data processing pipeline for City of Cape Town environmental sensor data
 
 ## Prerequisites
 
+- Please ensure that you are using Linux or ideally **WSL:Ubuntu** with the following libraries and services intalled:
 - Docker & Docker Compose
 - Python 3.8+ with pip and venv
 - Make utility
@@ -27,7 +28,8 @@ cd cct-sensors-batch-pipeline
 make setup
 
 # Start services
-# Please Note that this might take between 10 to 15 mins the first time for the image build process
+# Please Note that this might take between 10 to 20 mins the first time for the image build process and the container start
+# Depending on your machine and connectivity
 make airflow-up
 ```
 
