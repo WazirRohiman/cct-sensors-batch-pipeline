@@ -4,7 +4,7 @@ A batch data processing pipeline for City of Cape Town environmental sensor data
 
 ## Prerequisites
 
-- Please ensure that you are using Linux or ideally **WSL:Ubuntu** with the following libraries and services intalled:
+- Please ensure that you are using Linux or ideally **WSL:Ubuntu** with the following libraries and services installed:
 - Docker & Docker Compose
 - Python 3.8+ with pip and venv
 - Make utility
@@ -19,7 +19,24 @@ A batch data processing pipeline for City of Cape Town environmental sensor data
 
 ## Quick Start
 
-### 1. Clone and Setup
+### Option 1: One-Command Installation (Recommended)
+```bash
+git clone <repository-url>
+cd cct-sensors-batch-pipeline
+
+# Automated setup with prerequisite checks and service startup
+./install.sh
+```
+
+The installation script will:
+- ✓ Check prerequisites (Docker, Docker Compose)
+- ✓ Create necessary directories
+- ✓ Build and start all services
+- ✓ Display access URLs and next steps
+
+**Expected duration**: 3-5 minutes (first run with build)
+
+### Option 2: Manual Setup
 ```bash
 git clone <repository-url>
 cd cct-sensors-batch-pipeline
@@ -239,4 +256,31 @@ make lint
 make data-dirs
 ```
 
-For detailed documentation, see the `docs/` directory.
+## Documentation
+
+### Comprehensive Guides
+
+The project includes extensive documentation covering all aspects of the pipeline:
+
+#### Getting Started
+- **[PROJECT_STARTUP.md](docs/PROJECT_STARTUP.md)** - Quick start guide and initial setup
+
+#### Architecture & Design
+- **[PIPELINE_VISUAL_GUIDE.md](docs/PIPELINE_VISUAL_GUIDE.md)** - Complete pipeline flow with visual diagrams
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and design decisions
+- **[DOCKER_SERVICES_GUIDE.md](docs/DOCKER_SERVICES_GUIDE.md)** - Container architecture and service dependencies
+
+#### Operations & Monitoring
+- **[MONITORING_OBSERVABILITY.md](docs/MONITORING_OBSERVABILITY.md)** - Monitoring, alerting, and observability
+- **[FAULT_TOLERANCE_LOGGING.md](docs/FAULT_TOLERANCE_LOGGING.md)** - Error handling and retry mechanisms
+
+#### Additional Resources
+- **[MASTER_PIPELINE_ORCHESTRATION.md](docs/MASTER_PIPELINE_ORCHESTRATION.md)** - Pipeline orchestration details
+- **[TUTOR_FEEDBACK_ALIGNMENT.md](docs/TUTOR_FEEDBACK_ALIGNMENT.md)** - How feedback was addressed
+
+### Quick Links
+
+- **Installation**: Run `./install.sh` for automated setup
+- **Airflow UI**: http://localhost:8080 (admin/admin)
+- **Jupyter**: http://localhost:8888 (no token)
+- **Troubleshooting**: See [DOCKER_SERVICES_GUIDE.md](docs/DOCKER_SERVICES_GUIDE.md#troubleshooting)

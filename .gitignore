@@ -214,6 +214,12 @@ progress_reports/
 docs/*
 !docs/.gitkeep
 !docs/PROJECT_STARTUP.md
+!docs/PIPELINE_VISUAL_GUIDE.md
+!docs/FAULT_TOLERANCE_LOGGING.md
+!docs/DOCKER_SERVICES_GUIDE.md
+!docs/MONITORING_OBSERVABILITY.md
+!docs/ARCHITECTURE.md
+!docs/README.md
 
 .cursorignore
 .cursorindexingignore

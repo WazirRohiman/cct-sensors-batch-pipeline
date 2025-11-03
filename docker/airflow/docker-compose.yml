@@ -1,90 +1,243 @@
+# ═══════════════════════════════════════════════════════════════════════
+# AIRFLOW COMMON CONFIGURATION (Shared across all Airflow services)
+# ═══════════════════════════════════════════════════════════════════════
+# This anchor (&airflow-common) defines shared configuration that will be
+# inherited by airflow-webserver, airflow-scheduler, and airflow-triggerer
+# using YAML merge keys (<<: *airflow-common)
+
 x-airflow-common: &airflow-common
+  # Build custom image with additional dependencies (duckdb, pandas, etc.)
   build:
     context: .
   image: ${AIRFLOW_IMAGE:-cct-airflow:latest}
+
+  # ───────────────────────────────────────────────────────────────────────
+  # ENVIRONMENT VARIABLES (Core Airflow Configuration)
+  # ───────────────────────────────────────────────────────────────────────
   environment:
     &airflow-env
+    # LocalExecutor: Run tasks on the same machine as scheduler (good for single-node)
+    # Alternative: CeleryExecutor (for distributed multi-node setups)
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+
+    # Don't load example DAGs (we only want our custom DAGs)
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    # DAGs are paused by default when first created (prevents accidental execution)
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+
+    # Database connection string for Airflow metadata storage
+    # Format: postgresql+psycopg2://user:password@host:port/database
+    # This connects to the postgres service defined below
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+
+    # Webserver instance name (displayed in UI)
     AIRFLOW__WEBSERVER__INSTANCE_NAME: cct-env-pipeline
+
+    # Secret key for webserver session encryption (set in .env file)
     AIRFLOW__WEBSERVER__SECRET_KEY: "${AIRFLOW__WEBSERVER__SECRET_KEY}"
+
+    # User ID that Airflow will run as (must match host user for volume permissions)
+    # Default: 50000 (can be overridden in .env)
     AIRFLOW_UID: "${AIRFLOW_UID:-50000}"
+
+    # Group ID for Airflow (0 = root group, allows file access)
     AIRFLOW_GID: "${AIRFLOW_GID:-0}"
+
+  # ───────────────────────────────────────────────────────────────────────
+  # VOLUME MOUNTS (Host ↔ Container File Sharing)
+  # ───────────────────────────────────────────────────────────────────────
   volumes:
+    # DAG definitions: Airflow reads Python files from this directory
     - ./dags:/opt/airflow/dags
+
+    # Data directory: Shared storage for raw, staged, normalized, and DuckDB files
+    # This volume is accessible by all Airflow tasks and Jupyter viewer
     - ../../data:/opt/airflow/data
+
+    # Source code: Custom Python modules used by DAGs (io_arcgis.py, stage.py, etc.)
     - ../../src:/opt/airflow/src
+
+    # Logs directory: Task execution logs (viewable in Airflow UI)
     - ./logs:/opt/airflow/logs
+
+    # Plugins directory: Custom Airflow plugins (optional)
     - ./plugins:/opt/airflow/plugins
+
+  # ───────────────────────────────────────────────────────────────────────
+  # USER PERMISSIONS
+  # ───────────────────────────────────────────────────────────────────────
+  # Run as UID:GID (50000:100)
+  # - UID 50000: Airflow user (set by airflow-init)
+  # - GID 100: users group (allows Jupyter viewer to access data files)
   user: "${AIRFLOW_UID:-50000}:100"
+
+  # ───────────────────────────────────────────────────────────────────────
+  # SERVICE DEPENDENCIES (Startup Order Control)
+  # ───────────────────────────────────────────────────────────────────────
+  # This anchor (&airflow-common-depends-on) ensures all Airflow services
+  # wait for PostgreSQL to be healthy before starting
   depends_on: &airflow-common-depends-on
     postgres:
+      # Wait for PostgreSQL health check to pass before starting
+      # Health check: pg_isready command must succeed
       condition: service_healthy
 
 services:
+  # ═══════════════════════════════════════════════════════════════════════
+  # POSTGRES DATABASE (Airflow Metadata Storage)
+  # ═══════════════════════════════════════════════════════════════════════
+  # This is the FIRST service to start (no dependencies)
+  # Purpose: Store Airflow metadata (DAG runs, task states, connections, etc.)
+  # Not used for: Analytics data (that goes in DuckDB)
+
   postgres:
     image: postgres:15
+
+    # Database credentials (used by Airflow services to connect)
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
+
+    # Persistent storage for database files
+    # Named volume ensures data survives container restarts
     volumes:
       - airflow-db:/var/lib/postgresql/data
+
+    # ───────────────────────────────────────────────────────────────────────
+    # HEALTH CHECK (Critical for Service Dependencies)
+    # ───────────────────────────────────────────────────────────────────────
+    # Command: pg_isready checks if PostgreSQL is accepting connections
+    # Interval: Check every 10 seconds
+    # Retries: Try 5 times before marking unhealthy
+    # Start period: Wait 5 seconds before first check (allows initialization)
+    #
+    # Why critical: All Airflow services depend on this health check passing
+    # before they start. Without this, they would crash trying to connect.
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
       retries: 5
       start_period: 5s
+
+    # Always restart on failure (high availability)
     restart: always
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # AIRFLOW WEBSERVER (UI and REST API)
+  # ═══════════════════════════════════════════════════════════════════════
+  # Startup Order: 3rd (after postgres healthy + airflow-init complete)
+  # Purpose: Provide web UI for monitoring and managing DAGs
+  # Access: http://localhost:8080 (admin/admin)
+
   airflow-webserver:
-    <<: *airflow-common
-    command: webserver
+    <<: *airflow-common  # Inherit all common configuration
+    command: webserver   # Run webserver process
+
+    # Expose web UI on host port 8080
     ports:
       - "8080:8080"
+
+    # ───────────────────────────────────────────────────────────────────────
+    # HEALTH CHECK (Ensures webserver is responding)
+    # ───────────────────────────────────────────────────────────────────────
+    # Command: curl checks if /health endpoint returns success
+    # Interval: Check every 30 seconds
+    # Timeout: Wait up to 10 seconds for response
+    # Start period: Wait 30 seconds for webserver initialization
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+
     restart: always
+
+    # ───────────────────────────────────────────────────────────────────────
+    # DEPENDENCIES (Critical Startup Order)
+    # ───────────────────────────────────────────────────────────────────────
     depends_on:
+      # Inherit: Wait for postgres to be healthy
       <<: *airflow-common-depends-on
+      # Additionally: Wait for airflow-init to complete successfully
+      # Why: airflow-init runs database migrations and creates admin user
+      # Without this: webserver would fail to start with "table not found" errors
       airflow-init:
         condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # AIRFLOW SCHEDULER (Task Orchestration Engine)
+  # ═══════════════════════════════════════════════════════════════════════
+  # Startup Order: 3rd (after postgres healthy + airflow-init complete)
+  # Purpose: Parse DAGs, schedule tasks, monitor task execution
+  # Critical: This is the "brain" of Airflow - must always be running
 
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
+
+    # ───────────────────────────────────────────────────────────────────────
+    # HEALTH CHECK (Ensures scheduler is actively running)
+    # ───────────────────────────────────────────────────────────────────────
+    # Command: Check if SchedulerJob is running on this hostname
+    # This ensures the scheduler process is not just running but actively working
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+
     restart: always
+
+    # Same dependencies as webserver (postgres + airflow-init)
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # AIRFLOW TRIGGERER (Deferred Task Handler)
+  # ═══════════════════════════════════════════════════════════════════════
+  # Startup Order: 3rd (after postgres healthy + airflow-init complete)
+  # Purpose: Handle deferrable/async tasks (e.g., waiting for external events)
+  # Used by: TriggerDagRunOperator (master pipeline orchestration)
+
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer
+
+    # ───────────────────────────────────────────────────────────────────────
+    # HEALTH CHECK (Ensures triggerer is processing events)
+    # ───────────────────────────────────────────────────────────────────────
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+
     restart: always
+
+    # Same dependencies as webserver/scheduler
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # AIRFLOW INIT (One-Time Initialization Container)
+  # ═══════════════════════════════════════════════════════════════════════
+  # Startup Order: 2nd (after postgres healthy)
+  # Purpose: Initialize Airflow (run once, then exits)
+  # Tasks:
+  #   1. Validate environment (Airflow version, resources)
+  #   2. Run database migrations (create Airflow metadata tables)
+  #   3. Create admin user
+  #   4. Set up directory permissions
+  # Critical: Must complete successfully before other Airflow services start
 
   airflow-init:
     <<: *airflow-common
@@ -92,6 +245,9 @@ services:
     command:
       - -c
       - |
+        # ─────────────────────────────────────────────────────────────────
+        # INITIALIZATION SCRIPT
+        # ─────────────────────────────────────────────────────────────────
         function ver() {
           printf "%04d%04d%04d%04d" $${1//./ }
         }
@@ -160,42 +316,104 @@ services:
         touch /opt/airflow/data/test_permissions.txt
         chown 50000:100 /opt/airflow/data/test_permissions.txt
         exec /entrypoint airflow version
+
+    # ───────────────────────────────────────────────────────────────────────
+    # INITIALIZATION ENVIRONMENT VARIABLES
+    # ───────────────────────────────────────────────────────────────────────
     environment:
-      <<: *airflow-env
+      <<: *airflow-env  # Inherit all common Airflow environment variables
+      # Run database migrations (create/update Airflow metadata tables)
       _AIRFLOW_DB_MIGRATE: 'true'
+      # Create the Airflow admin user
       _AIRFLOW_WWW_USER_CREATE: 'true'
+      # Admin username (default: admin, can override in .env)
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-admin}
+      # Admin password (default: admin, can override in .env)
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-admin}
+
+    # ───────────────────────────────────────────────────────────────────────
+    # RUN AS ROOT (Required for Permission Setup)
+    # ───────────────────────────────────────────────────────────────────────
+    # User: 0:0 (root:root)
+    # Why: Need root privileges to chown/chmod data directories
+    # Security: Only this init container runs as root, all other services run as airflow user
     user: "0:0"
+
+    # Volume mounts for initialization (slightly different from common volumes)
     volumes:
       - ./dags:/sources/dags:z
       - ./logs:/sources/logs:z
       - ./plugins:/sources/plugins:z
-      - ../../data:/opt/airflow/data
+      - ../../data:/opt/airflow/data  # Set ownership/permissions for this
       - ../../src:/opt/airflow/src
 
-  # DuckDB init removed - file-based DB doesn't need server initialization
-  # Tables will be created automatically when first accessed
+  # ═══════════════════════════════════════════════════════════════════════
+  # DUCKDB NOTE
+  # ═══════════════════════════════════════════════════════════════════════
+  # DuckDB init service removed - file-based DB doesn't need server initialization
+  # Tables are created automatically when first accessed by pipeline code
+  # Database file: data/duckdb/cct_env.duckdb (created on first use)
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # JUPYTER VIEWER (Analytics Interface)
+  # ═══════════════════════════════════════════════════════════════════════
+  # Startup Order: Independent (can start anytime, no dependencies)
+  # Purpose: Provide Jupyter notebooks for ad-hoc data analysis
+  # Access: http://localhost:8888 (no token required)
 
   viewer:
     image: jupyter/minimal-notebook:python-3.11
+
+    # Install required Python packages on container startup
+    # This ensures fresh package installation on each restart
     command: bash -c "
       echo 'Installing Python packages...' &&
       pip install duckdb>=1.2.1 pandas pyarrow matplotlib>=3.5.0 seaborn>=0.11.0 &&
       echo 'Starting JupyterLab...' &&
       start-notebook.py --ServerApp.token=''
       "
+
+    # Expose Jupyter on host port 8888
     ports:
       - "8888:8888"
+
+    # ───────────────────────────────────────────────────────────────────────
+    # ENVIRONMENT VARIABLES (Jupyter Configuration)
+    # ───────────────────────────────────────────────────────────────────────
     environment:
+      # Path to DuckDB file (accessible from notebooks)
       - DUCKDB_PATH=/home/jovyan/work/data/duckdb/cct_env.duckdb
+      # Enable JupyterLab interface (modern UI)
       - JUPYTER_ENABLE_LAB=yes
+
+    # ───────────────────────────────────────────────────────────────────────
+    # VOLUME MOUNTS (Shared Data Access)
+    # ───────────────────────────────────────────────────────────────────────
     volumes:
+      # Data directory: Read access to all pipeline data (raw, staged, normalized, DuckDB)
       - ../../data:/home/jovyan/work/data
+      # Notebooks directory: Jupyter notebook files (.ipynb)
       - ../../notebooks:/home/jovyan/work/notebooks
+      # Source code: Access to pipeline modules for analysis
       - ../../src:/home/jovyan/work/src
+
+    # ───────────────────────────────────────────────────────────────────────
+    # USER PERMISSIONS (Match Airflow User)
+    # ───────────────────────────────────────────────────────────────────────
+    # Run as UID:GID (50000:100)
+    # - Same UID as Airflow (50000) for file access compatibility
+    # - GID 100 (users group) allows shared file access
+    # This ensures Jupyter can read DuckDB files created by Airflow tasks
     user: "50000:100"
+
+    # Enable proper signal handling for clean shutdown
     init: true
 
+# ═══════════════════════════════════════════════════════════════════════
+# NAMED VOLUMES (Persistent Storage)
+# ═══════════════════════════════════════════════════════════════════════
 volumes:
+  # PostgreSQL database storage (Airflow metadata)
+  # This volume persists across container restarts/recreations
+  # Location: Docker volume storage (/var/lib/docker/volumes/)
   airflow-db:
