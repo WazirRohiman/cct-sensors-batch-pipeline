@@ -17,7 +17,7 @@ The City of Cape Town Environmental Sensors Data Pipeline implements a robust, p
 │                 │    │ │ • Retry      │ │    │ └─────────────┘ │
 │ ┌─────────────┐ │    │ │ • Validate   │ │    │                 │
 │ │ Wind Data   │ │───▶│ │ • Stream     │ │    │ ┌─────────────┐ │
-│ │ (2016-2020) │ │    │ │ • Quarantine │ │    │ │ Normalize   │ │
+│ │ (2016-2020) │ │    │ │ • Quarantine │ │    │ │ Normalise   │ │
 │ └─────────────┘ │    │ └──────────────┘ │    │ │ (Future)    │ │
 └─────────────────┘    └──────────────────┘    │ └─────────────┘ │
                                                └─────────────────┘
@@ -88,7 +88,7 @@ Wide→Tall transformation with unit + quality flags
           ↓
 Join station metadata from station_mapping.yaml
           ↓
-data/normalised/*.parquet (24 normalized files)
+data/normalised/*.parquet (24 normalised files)
 ├── wind_YYYY_normalised.parquet (5 files)
 └── air_quality_{pollutant}_{year}_normalised.parquet (18 files)
           ↓
@@ -145,7 +145,7 @@ data/
 **File Naming Conventions**:
 - **Raw**: `air_quality_2022.xlsx`, `air_quality_2021.zip`, `wind_2020.xlsx`
 - **Staged**: `wind_YYYY.parquet`, `air_quality_{pollutant}_{year}.parquet`
-- **Normalized**: `wind_YYYY_normalised.parquet`, `air_quality_{pollutant}_{year}_normalised.parquet`
+- **Normalised**: `wind_YYYY_normalised.parquet`, `air_quality_{pollutant}_{year}_normalised.parquet`
 - **Dimension**: `station_dim.parquet` (shared across datasets)
 - **Errors**: `air_quality_2021_failed.txt`
 
@@ -162,7 +162,7 @@ dag_stage_wind (DAG) → 5 parallel tasks (2016-2020)
 dag_stage_air (DAG) → 4 parallel tasks (2019-2022)
 
 # Phase 4: Normalization
-dag_normalise_wind (DAG) → normalize_all_wind task
+dag_normalise_wind (DAG) → normalise_all_wind task
 dag_normalise_air_quality (DAG) → normalise_all_air_quality task
 
 # Phase 5: Analytics (Placeholder)
@@ -308,7 +308,7 @@ dag_load_dq_publish (DAG) → Planned for DuckDB loading + DQ checks
 
 ### ✅ Phase 4: Processing Pipeline COMPLETE
 - ✅ **Staging Module**: Excel/ZIP extraction to standardized Parquet (24 files)
-- ✅ **Normalization Engine**: Wide-to-tall schema transformation (24 normalized files)
+- ✅ **Normalization Engine**: Wide-to-tall schema transformation (24 normalised files)
 - ✅ **Station Dimension**: Shared idempotent dimension (11 stations, PKs 1-11)
 - ✅ **Airflow Orchestration**: 8 operational DAGs for end-to-end processing
 - ✅ **Quality Assurance**: 4 EDA notebooks for validation

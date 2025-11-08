@@ -45,9 +45,9 @@ make airflow-up
 ### ✅ Wind Staging & Normalization (Phase 4)
 - **Staging Pipeline**: Multi-header Excel converted to surrogate-key wide Parquet (`wind_YYYY.parquet`)
 - **Normalization**: Wide-to-tall transform with station metadata, quality flags, and unit standardization
-- **Artifacts**: `wind_YYYY_normalized.parquet` fact files + idempotent `station_dim.parquet`
-- **Automation**: Dedicated Airflow DAG (`normalize_wind_data`) following staging DAG completion
-- **EDA Tooling**: Notebooks for staged (`staged_wind_eda.ipynb`) and normalized (`normalized_wind_eda.ipynb`) QA
+- **Artifacts**: `wind_YYYY_normalised.parquet` fact files + idempotent `station_dim.parquet`
+- **Automation**: Dedicated Airflow DAG (`normalise_wind_data`) following staging DAG completion
+- **EDA Tooling**: Notebooks for staged (`staged_wind_eda.ipynb`) and normalised (`normalised_wind_eda.ipynb`) QA
 
 ### ✅ Air Quality Staging (Phase 4)
 - **Staging Pipeline**: ZIP extraction and Excel parsing into separate pollutant Parquet files
@@ -111,7 +111,7 @@ cct-sensors-batch-pipeline/
 │   ├── raw/               # ✅ Downloaded files (24 files)
 │   ├── quarantine/        # ✅ Failed downloads
 │   ├── staged/            # ✅ Wind & air quality wide-format Parquet (24 files)
-│   ├── normalised/        # ✅ Tall fact + station dimension (24 normalized + 1 dim)
+│   ├── normalised/        # ✅ Tall fact + station dimension (24 normalised + 1 dim)
 │   └── duckdb/           # ✅ Analytics database (cct_env.duckdb - 414MB, 2.9M+ records)
 ├── docs/                  # Project documentation
 └── progress_reports/      # Development tracking
@@ -175,7 +175,7 @@ cct-sensors-batch-pipeline/
 - ✅ **Air Quality Staging**: ZIP extraction to pollutant-specific Parquet (19 files)
 - ✅ **Air Quality Normalization**: Tall schema transformation complete (18 files)
 - ✅ **Shared Station Dimension**: Idempotent `station_dim.parquet` (11 stations)
-- ✅ **Total Normalized Dataset**: 24 fact files + 1 dimension file
+- ✅ **Total Normalised Dataset**: 24 fact files + 1 dimension file
 
 ### Phase 5: Analytics & Publishing ✅ COMPLETE
 - ✅ **DuckDB Loading Pipeline**: Ultra-fast star schema (`dim_station` + `fact_measurement`)

@@ -51,7 +51,7 @@ x-airflow-common: &airflow-common
     # DAG definitions: Airflow reads Python files from this directory
     - ./dags:/opt/airflow/dags
 
-    # Data directory: Shared storage for raw, staged, normalized, and DuckDB files
+    # Data directory: Shared storage for raw, staged, normalised, and DuckDB files
     # This volume is accessible by all Airflow tasks and Jupyter viewer
     - ../../data:/opt/airflow/data
 
@@ -390,7 +390,7 @@ services:
     # VOLUME MOUNTS (Shared Data Access)
     # ───────────────────────────────────────────────────────────────────────
     volumes:
-      # Data directory: Read access to all pipeline data (raw, staged, normalized, DuckDB)
+      # Data directory: Read access to all pipeline data (raw, staged, normalised, DuckDB)
       - ../../data:/home/jovyan/work/data
       # Notebooks directory: Jupyter notebook files (.ipynb)
       - ../../notebooks:/home/jovyan/work/notebooks

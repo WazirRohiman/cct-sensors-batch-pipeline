@@ -148,7 +148,7 @@ fi
 
 # Create data directories if they don't exist
 print_info "Creating data directories..."
-mkdir -p data/raw data/staged data/normalized data/duckdb data/quarantine data/logs
+mkdir -p data/raw data/staged data/normalised data/duckdb data/quarantine data/logs
 print_success "Data directories created"
 
 # Set correct permissions for Airflow

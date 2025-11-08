@@ -21,8 +21,8 @@ graph TB
     end
 
     subgraph "Phase 3: Normalization (2-3m)"
-        C1[Normalize Air Quality<br/>Wide → Tall schema]
-        C2[Normalize Wind<br/>Wide → Tall schema]
+        C1[Normalise Air Quality<br/>Wide → Tall schema]
+        C2[Normalise Wind<br/>Wide → Tall schema]
         C3[Station Dimension<br/>11 stations]
     end
 
@@ -131,8 +131,8 @@ flowchart TB
         T3[Unit Standardization]
     end
 
-    subgraph Output["Normalized Data (Tall Format)"]
-        O1[24 normalized files]
+    subgraph Output["Normalised Data (Tall Format)"]
+        O1[24 normalised files]
         O2[station_dim.parquet<br/>11 stations]
     end
 
@@ -193,8 +193,8 @@ gantt
     Stage Wind :10, 15
 
     section Phase 3: Normalization
-    Normalize Air Quality :15, 18
-    Normalize Wind :15, 18
+    Normalise Air Quality :15, 18
+    Normalise Wind :15, 18
 
     section Phase 4: Loading
     Validate Input :18, 19
@@ -254,7 +254,7 @@ flowchart LR
         S[Parquet Wide<br/>Typed columns<br/>Station keys]
     end
 
-    subgraph Normalized["NORMALIZED<br/>~200MB"]
+    subgraph Normalised["NORMALISED<br/>~200MB"]
         N[Parquet Tall<br/>Quality flags<br/>Unified schema]
     end
 

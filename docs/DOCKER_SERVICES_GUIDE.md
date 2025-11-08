@@ -404,8 +404,3 @@ docker-compose exec airflow-scheduler ls -la /opt/airflow/dags
 - [PIPELINE_VISUAL_GUIDE.md](./PIPELINE_VISUAL_GUIDE.md) - Pipeline flow
 - [PROJECT_STARTUP.md](./PROJECT_STARTUP.md) - Getting started
 
----
-
-**Document Status**: ✅ Complete
-**Last Updated**: 2025-10-14
-**Purpose**: Tutor feedback response (service dependencies explanation)

@@ -304,7 +304,7 @@ flowchart TB
 flowchart LR
     RERUN[Trigger Master<br/>Pipeline] --> PHASE1[Phase 1<br/>Overwrites Raw]
     PHASE1 --> PHASE2[Phase 2<br/>Overwrites Staged]
-    PHASE2 --> PHASE3[Phase 3<br/>Overwrites Normalized]
+    PHASE2 --> PHASE3[Phase 3<br/>Overwrites Normalised]
     PHASE3 --> PHASE4[Phase 4<br/>DELETE + INSERT]
     PHASE4 --> SAME[Identical Result<br/>Safe Re-run]
 

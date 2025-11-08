@@ -16,42 +16,24 @@ Before you begin, ensure you have the following installed on your system:
 - **Storage**: ~2GB for Docker images and data
 - **OS**: Linux, macOS, or Windows with WSL2
 
-## 🚀 Quick Start (5 Steps)
+## 🚀 Quick Start
 
-### Step 1: Clone the Repository
+### Automated Installation (Recommended)
+
+Run the installation script:
 ```bash
-git clone <repository-url>
-cd cct-sensors-batch-pipeline
+./install.sh
 ```
 
-### Step 2: Create Required Directories
-```bash
-make data-dirs
-```
-This creates: `data/raw`, `data/staged`, `data/duckdb`, `data/quarantine`, `data/logs`, `notebooks`, `progress_reports`
+This will automatically:
+- Check prerequisites (Docker, Docker Compose, disk space)
+- Create environment configuration from .env.example
+- Create required data directories
+- Build Docker images
+- Start all services
+- Verify installation
 
-### Step 3: Start All Services
-```bash
-make airflow-up
-```
-This command will:
-- Download required Docker images (~1-2GB first time)
-- Start PostgreSQL database
-- Initialize Airflow with admin user
-- Initialize DuckDB with required schema
-- Start Airflow webserver, scheduler, and triggerer
-- Start Jupyter notebook server
-
-**⏱️ First-time setup takes 5-10 minutes** depending on your internet connection.
-
-### Step 4: Verify Services are Running
-Wait for the startup to complete, then check:
-```bash
-docker ps
-```
-You should see containers for: `postgres`, `airflow-webserver`, `airflow-scheduler`, `airflow-triggerer`, `viewer`
-
-### Step 5: Access the Web Interfaces
+Once complete, access the web interfaces:
 
 #### Airflow UI
 - **URL**: http://localhost:8080
@@ -62,6 +44,44 @@ You should see containers for: `postgres`, `airflow-webserver`, `airflow-schedul
 - **URL**: http://localhost:8888
 - **Token**: None required
 - **DuckDB Example**: Open `DuckDB_Example.ipynb` to test database connectivity
+
+### Manual Installation (Alternative)
+
+If you prefer manual control over each step:
+
+#### Step 1: Clone the Repository
+```bash
+git clone <repository-url>
+cd cct-sensors-batch-pipeline
+```
+
+#### Step 2: Create Required Directories
+```bash
+make data-dirs
+```
+This creates: `data/raw`, `data/staged`, `data/duckdb`, `data/quarantine`, `data/logs`, `notebooks`, `progress_reports`
+
+#### Step 3: Start All Services
+```bash
+make airflow-up
+```
+This command will:
+- Download required Docker images
+- Start PostgreSQL database
+- Initialize Airflow with admin user
+- Initialize DuckDB with required schema
+- Start Airflow webserver, scheduler, and triggerer
+- Start Jupyter notebook server
+
+#### Step 4: Verify Services are Running
+Check running containers:
+```bash
+docker ps
+```
+You should see containers for: `postgres`, `airflow-webserver`, `airflow-scheduler`, `airflow-triggerer`, `viewer`
+
+#### Step 5: Access the Web Interfaces
+See the Automated Installation section above for access URLs and credentials.
 
 ## 🔧 Available Commands
 
@@ -149,7 +169,7 @@ docker volume prune
 ```
 
 ### Issue: Airflow UI shows "Airflow is not ready"
-**Solution**: Wait 2-3 minutes for initialization, then refresh
+**Solution**: Wait for initialization to complete, then refresh
 
 ### Issue: Can't connect to DuckDB in Jupyter
 **Solution**: 
@@ -191,9 +211,8 @@ Once your setup is running:
 ### Starting Work
 ```bash
 make airflow-up
-# Wait for services to be ready
-# Open http://localhost:8080 and http://localhost:8888
 ```
+Open http://localhost:8080 and http://localhost:8888
 
 ### Ending Work
 ```bash

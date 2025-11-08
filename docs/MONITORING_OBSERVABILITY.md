@@ -156,7 +156,7 @@ gantt
     Stage Wind :8, 11
 
     section Normalization
-    Normalize All :11, 13
+    Normalise All :11, 13
 
     section Loading
     Load to DuckDB :13, 20
