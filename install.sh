@@ -61,13 +61,19 @@ if ! docker info &> /dev/null; then
 fi
 print_success "Docker daemon is running"
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
+# Check if Docker Compose is installed (check both plugin and standalone)
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+    COMPOSE_VERSION=$(docker compose version 2>&1 | head -n1 | grep -oP 'v[\d.]+' || echo "plugin")
+    print_success "Docker Compose is installed ($COMPOSE_VERSION)"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+    print_success "Docker Compose is installed ($(docker-compose --version))"
+else
     print_error "Docker Compose is not installed"
     echo "Please install Docker Compose: https://docs.docker.com/compose/install/"
     exit 1
 fi
-print_success "Docker Compose is installed ($(docker-compose --version))"
 
 # Check disk space (need at least 5GB free)
 available_space=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
@@ -91,7 +97,21 @@ if [ ! -f "docker/airflow/.env" ]; then
     if [ -f "docker/airflow/.env.example" ]; then
         cp docker/airflow/.env.example docker/airflow/.env
         print_success "Created .env file from example"
-        print_warning "Please review docker/airflow/.env and update credentials if needed"
+
+        # Generate secure secret key
+        print_info "Generating secure secret key..."
+        SECRET_KEY=$(openssl rand -hex 32)
+
+        # Replace placeholder with actual secret key
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            sed -i '' "s/<insert-your-secret-key-here>/$SECRET_KEY/" docker/airflow/.env
+        else
+            # Linux
+            sed -i "s/<insert-your-secret-key-here>/$SECRET_KEY/" docker/airflow/.env
+        fi
+        print_success "Secret key generated and configured"
+        print_warning "Please review docker/airflow/.env and update other credentials if needed"
     else
         print_error ".env.example not found"
         echo "Please create docker/airflow/.env manually"
@@ -99,6 +119,31 @@ if [ ! -f "docker/airflow/.env" ]; then
     fi
 else
     print_success ".env file exists"
+
+    # Check if secret key is still placeholder
+    if grep -q "<insert-your-secret-key-here>" docker/airflow/.env; then
+        print_warning "Secret key is still placeholder"
+        print_info "Generating secure secret key..."
+        SECRET_KEY=$(openssl rand -hex 32)
+
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/<insert-your-secret-key-here>/$SECRET_KEY/" docker/airflow/.env
+        else
+            sed -i "s/<insert-your-secret-key-here>/$SECRET_KEY/" docker/airflow/.env
+        fi
+        print_success "Secret key generated and configured"
+    fi
+
+    # Check if AIRFLOW_IMAGE is set to base image instead of custom image
+    if grep -q "^AIRFLOW_IMAGE=apache/airflow:" docker/airflow/.env; then
+        print_warning "AIRFLOW_IMAGE is set to base image, updating to custom image name..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^AIRFLOW_IMAGE=apache/airflow:.*|AIRFLOW_IMAGE=cct-airflow:latest|" docker/airflow/.env
+        else
+            sed -i "s|^AIRFLOW_IMAGE=apache/airflow:.*|AIRFLOW_IMAGE=cct-airflow:latest|" docker/airflow/.env
+        fi
+        print_success "AIRFLOW_IMAGE updated to cct-airflow:latest"
+    fi
 fi
 
 # Create data directories if they don't exist
@@ -110,13 +155,32 @@ print_success "Data directories created"
 print_info "Setting directory permissions..."
 # Airflow runs as UID 50000, set appropriate permissions
 if [ "$(uname)" = "Linux" ]; then
-    sudo chown -R 50000:100 data/ 2>/dev/null || {
-        print_warning "Could not set ownership (may need sudo)"
+    if sudo -n true 2>/dev/null; then
+        # Can run sudo without password
+        sudo chown -R 50000:100 data/ 2>/dev/null && \
+        sudo chmod -R 775 data/ 2>/dev/null && \
+        print_success "Permissions configured (ownership: 50000:100, mode: 775)" || {
+            print_warning "Could not set all permissions"
+            print_info "Airflow init container will handle permissions"
+        }
+    else
+        # Need to prompt for sudo
+        if sudo chown -R 50000:100 data/ 2>/dev/null && \
+           sudo chmod -R 775 data/ 2>/dev/null; then
+            print_success "Permissions configured (ownership: 50000:100, mode: 775)"
+        else
+            print_warning "Could not set all permissions"
+            print_info "Airflow init container will handle permissions"
+        fi
+    fi
+else
+    # Non-Linux systems (macOS, etc.)
+    chmod -R 775 data/ 2>/dev/null || {
+        print_warning "Could not set permissions"
         print_info "Airflow init container will handle permissions"
     }
+    print_success "Permissions configured"
 fi
-chmod -R 775 data/ 2>/dev/null || print_warning "Could not set permissions (may need sudo)"
-print_success "Permissions configured"
 
 # ═══════════════════════════════════════════════════════════════════════
 # 3. BUILD AND START SERVICES
@@ -127,12 +191,20 @@ print_header "Step 3: Building and Starting Services"
 cd docker/airflow
 
 print_info "Building Docker images (this may take 3-5 minutes on first run)..."
-docker-compose build --quiet
+if ! $DOCKER_COMPOSE build; then
+    print_error "Docker build failed"
+    print_info "Trying with --no-cache flag..."
+    if ! $DOCKER_COMPOSE build --no-cache; then
+        print_error "Docker build failed even with --no-cache"
+        print_info "Check the error messages above"
+        exit 1
+    fi
+fi
 
 print_success "Docker images built"
 
 print_info "Starting services..."
-docker-compose up -d
+$DOCKER_COMPOSE up -d
 
 print_success "Services started"
 
@@ -149,7 +221,7 @@ print_info "Waiting for Airflow webserver to be ready..."
 max_attempts=60
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
-    if docker-compose ps | grep airflow-webserver | grep -q "healthy"; then
+    if $DOCKER_COMPOSE ps | grep airflow-webserver | grep -q "healthy"; then
         print_success "Airflow webserver is ready"
         break
     fi
@@ -164,7 +236,7 @@ while [ $attempt -lt $max_attempts ]; do
     if [ $attempt -eq $max_attempts ]; then
         echo ""
         print_error "Timeout waiting for services to start"
-        print_info "Check logs with: docker-compose logs"
+        print_info "Check logs with: $DOCKER_COMPOSE logs"
         exit 1
     fi
 done
@@ -184,7 +256,7 @@ services=("postgres" "airflow-webserver" "airflow-scheduler" "airflow-triggerer"
 all_running=true
 
 for service in "${services[@]}"; do
-    if docker-compose ps | grep "$service" | grep -q "Up"; then
+    if $DOCKER_COMPOSE ps | grep "$service" | grep -q "Up"; then
         print_success "$service is running"
     else
         print_error "$service is not running"
@@ -194,7 +266,7 @@ done
 
 if [ "$all_running" = false ]; then
     print_error "Some services failed to start"
-    print_info "Check logs with: docker-compose logs [service-name]"
+    print_info "Check logs with: $DOCKER_COMPOSE logs [service-name]"
     exit 1
 fi
 
@@ -222,9 +294,9 @@ echo "  4. Monitor progress in the UI"
 echo ""
 
 echo "Common Commands:"
-echo -e "  ${BLUE}View logs:${NC}       cd docker/airflow && docker-compose logs -f"
-echo -e "  ${BLUE}Stop services:${NC}   cd docker/airflow && docker-compose down"
-echo -e "  ${BLUE}Restart:${NC}         cd docker/airflow && docker-compose restart"
+echo -e "  ${BLUE}View logs:${NC}       cd docker/airflow && $DOCKER_COMPOSE logs -f"
+echo -e "  ${BLUE}Stop services:${NC}   cd docker/airflow && $DOCKER_COMPOSE down"
+echo -e "  ${BLUE}Restart:${NC}         cd docker/airflow && $DOCKER_COMPOSE restart"
 echo ""
 
 echo "Documentation:"
